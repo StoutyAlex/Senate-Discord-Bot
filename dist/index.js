@@ -1,12 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 require('dotenv').config();
-const inversify_config_1 = require("./inversify.config");
-const types_1 = require("./types");
-const bot = inversify_config_1.default.get(types_1.TYPES.Bot);
-bot.listen().then(() => {
-    console.log('Logged in!');
-}).catch((error) => {
-    console.log('Oh no! ', error);
+const path = require('path');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+const spawn = util.promisify(require('child_process').spawn);
+const fork = util.promisify(require('child_process').fork);
+;
+const { APE_BOT_TOKEN_1, APE_BOT_TOKEN_2 } = process.env;
+const apes = [{ TOKEN: APE_BOT_TOKEN_1 }, { TOKEN: APE_BOT_TOKEN_2 }];
+apes.forEach((ape, index) => {
+    spawn(`node ./dist/ape-bot/ape.js`, { env: Object.assign(Object.assign({}, ape), { APE_ID: index }), cwd: undefined, stdio: 'inherit', shell: true });
 });
+spawn('node ./dist/senate-bot/index.js', { env: { TOKEN: process.env.SENATE_BOT_TOKEN }, cwd: undefined, stdio: 'inherit', shell: true });
 //# sourceMappingURL=index.js.map

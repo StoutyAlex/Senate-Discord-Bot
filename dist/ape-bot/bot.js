@@ -42,7 +42,7 @@ let Bot = class Bot {
     listen() {
         this.client.on('message', (message) => {
             if (message.author.bot) {
-                console.log('Ignoring bot message!');
+                console.log('Ignoring bot!');
                 return;
             }
             console.log("Message received! Contents: ", message.content);

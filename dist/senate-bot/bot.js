@@ -26,12 +26,12 @@ const discord_js_1 = require("discord.js");
 const inversify_1 = require("inversify");
 const types_1 = require("./types");
 const message_responder_1 = require("./services/message-responder");
-const fs = require('fs');
+const channel_1 = require("../helpers/channel");
 const unique_names_generator_1 = require("unique-names-generator");
 const customConfig = {
-    dictionaries: [unique_names_generator_1.adjectives],
-    separator: '',
-    length: 1,
+    dictionaries: [unique_names_generator_1.adjectives, unique_names_generator_1.animals],
+    separator: ' ',
+    length: 2,
 };
 let Bot = class Bot {
     constructor(client, token, messageResponder) {
@@ -46,40 +46,41 @@ let Bot = class Bot {
                 return;
             }
             console.log("Message received! Contents: ", message.content);
+            this.messageResponder.handle(message).then(() => {
+                console.log("Response sent!");
+            }).catch(() => {
+                console.log("Response not sent.");
+            });
         });
         this.client.on('voiceStateUpdate', (before, after) => __awaiter(this, void 0, void 0, function* () {
-            if (after.channel && after.channel.name.toLowerCase().includes('ape room')) {
-                const alreadyInRoom = after.channel.members.find(member => member.id === this.client.user.id);
-                if (!alreadyInRoom) {
-                    const randomName = unique_names_generator_1.uniqueNamesGenerator(customConfig);
-                    const botName = randomName.charAt(0).toUpperCase() + randomName.slice(1) + ' Ape';
-                    const connection = yield after.channel.join();
-                    try {
-                        connection.channel.members.find(member => member.id === this.client.user.id).setNickname(botName);
-                    }
-                    catch (error) {
-                        console.log('Name change too soon try again later', error);
-                    }
-                    const randomWait = Math.floor(Math.random() * 4) + 0 * 1000;
-                    console.log('Waiting for:', randomWait);
-                    setTimeout(() => __awaiter(this, void 0, void 0, function* () {
-                        try {
-                            const dispatcher = yield connection.play('./assets/monke.mp3');
-                            dispatcher.on('finish', () => {
-                                connection.play('./assets/monke.mp3');
-                            });
-                        }
-                        catch (error) {
-                            console.log('Error playing audio file', error);
-                        }
-                    }), randomWait * 1000);
+            if (before.channel) {
+                if ((before.channel.name !== 'Join Game Room' && before.channel.name !== 'Create Temp Room') && (channel_1.isChannelParentOf(before.channel, 'Gaming') || channel_1.isChannelParentOf(before.channel, 'Temp Rooms'))) {
+                    const gameChannel = before.channel;
+                    const userSize = gameChannel.members.size;
+                    console.log('User size', userSize, gameChannel.name);
+                    if (userSize === 0)
+                        yield gameChannel.delete();
                 }
             }
-            if (before.channel && before.channel.name.toLowerCase().includes('ape room')) {
-                console.log('User left the ape room');
-                const userSize = before.channel.members.size;
-                if (userSize === 2) {
-                    before.channel.leave();
+            if (after.channel) {
+                if (after.channel.name === 'Join Game Room') {
+                    const playing = after.member.user.presence.activities.find(x => x.type === "PLAYING");
+                    if (!playing) {
+                        after.member.voice.setChannel(before.channel);
+                        return;
+                    }
+                    const gameChannel = yield channel_1.getChannelByName(after.guild, playing.name);
+                    if (gameChannel) {
+                        after.member.voice.setChannel(gameChannel);
+                        return;
+                    }
+                    const channel = yield channel_1.createChannel(after.guild, playing.name, 'Gaming');
+                    after.member.voice.setChannel(channel);
+                }
+                if (after.channel.name === 'Create Temp Room') {
+                    const randomName = unique_names_generator_1.uniqueNamesGenerator(customConfig).split(' ').map(name => name.charAt(0).toUpperCase() + name.slice(1)).join(' ');
+                    const channel = yield channel_1.createChannel(after.guild, randomName, 'Temp Rooms');
+                    after.member.voice.setChannel(channel);
                 }
             }
         }));

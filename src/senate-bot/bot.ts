@@ -2,7 +2,7 @@ import { Client, Message } from "discord.js";
 import { inject, injectable } from "inversify";
 import { TYPES } from "./types";
 import { MessageResponder } from "./services/message-responder";
-import { createChannel, getChannelByName, isChannelParentOf } from "./helpers/channel";
+import { createChannel, getChannelByName, isChannelParentOf } from "../helpers/channel";
 
 import { uniqueNamesGenerator, Config, adjectives, colors, animals } from 'unique-names-generator';
 

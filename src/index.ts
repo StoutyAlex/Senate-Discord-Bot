@@ -1,13 +1,21 @@
 require('dotenv').config();
 
-import container from "./inversify.config";
-import {TYPES} from "./types";
-import {Bot} from "./bot";
+import { ChildProcess } from 'child_process';
+const path = require('path');
+const util = require('util');
 
-const bot = container.get<Bot>(TYPES.Bot);
+const exec = util.promisify(require('child_process').exec);
+const spawn = util.promisify(require('child_process').spawn);
+const fork = util.promisify(require('child_process').fork);
 
-bot.listen().then(() => {
-  console.log('Logged in!')
-}).catch((error) => {
-  console.log('Oh no! ', error)
-});
+interface Apes { TOKEN: string; AUDIO?: string };
+
+const { APE_BOT_TOKEN_1, APE_BOT_TOKEN_2 } = process.env;
+
+const apes: Apes[] = [ { TOKEN: APE_BOT_TOKEN_1 }, { TOKEN: APE_BOT_TOKEN_2 } ];
+
+apes.forEach((ape, index) => {
+  spawn(`node ./dist/ape-bot/ape.js`, { env: { ...ape, APE_ID: index }, cwd: undefined, stdio: 'inherit', shell: true });
+})
+
+spawn('node ./dist/senate-bot/index.js', { env: { TOKEN: process.env.SENATE_BOT_TOKEN }, cwd: undefined, stdio: 'inherit', shell: true });
